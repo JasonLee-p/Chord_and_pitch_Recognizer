@@ -182,6 +182,12 @@ def note_recognize(_note_text_var):
             （获取max_note在 hz array 中的索引，再根据 索引减去音程得到的值 作为 新音的索引 来寻找这些音）
             """
             f0_possible2 = hz_array[list(hz_array).index(max_note) - 12]  # 第一泛音（八度音）
+            global LOADING, load_str_var
+            if LOADING:
+                load_str_var.set("complete!")
+                time.sleep(0.5)
+                text_load.destroy()
+                LOADING = 0
             if f0_possible2 in latest_notes_list:  # 第一泛音的可能性最大，先判断
                 _note_text_var.set(str(hz_notename[f0_possible2]))
             else:  # 如果上述的音不在列表中，则显示数量最多的音。
@@ -201,9 +207,8 @@ def audio_callback(in_data, *args):
 
 
 def read_audio_thread(_q, _stream, _frames, _ad_rdy_ev):
-    global latest_notes_list, both_title_v
+    global latest_notes_list, both_title_v, text_load
     while _stream.is_active():
-
         # _ad_rdy_ev.wait(timeout=1000)
         # if _q.empty():
         #     _ad_rdy_ev.clear()
@@ -229,6 +234,12 @@ def read_audio_thread(_q, _stream, _frames, _ad_rdy_ev):
                 pass
             chordset = chord_sequence(chordgram("tmp.wav", sr=44100, hop_length=4096))
             print(chordset)
+            global LOADING, load_str_var
+            if LOADING:
+                load_str_var.set("complete!")
+                time.sleep(0.5)
+                text_load.destroy()
+                LOADING = 0
             if chordset[0] == chordset[1] == "NC":
                 note_text_var.set("NC")
             else:
@@ -260,7 +271,7 @@ def read_audio_thread(_q, _stream, _frames, _ad_rdy_ev):
 
 
 def draw_main_window():
-    global both_title_v
+    global both_title_v, text_load
     # 标题
     title_v = tk.Label(
         window_,
@@ -305,6 +316,16 @@ def draw_main_window():
     radio_button_chord.pack(side="left", expand=False, padx=5)
     radio_button_note.pack(side="left", expand=False, padx=5)
     radio_button_both.pack(side="left", expand=False, padx=5)
+
+    # 加载中
+    text_load = tk.Label(
+        window_,
+        textvariable=load_str_var,  # 标签的文字
+        bg=BG_COLOUR,  # 标签背景颜色
+        font=('Arial', 70),  # 字体和字体大小
+        width=10, height=4)  # 标签长宽
+    text_load.pack(side="top", padx=5, pady=10, expand=True)
+    load_str_var.set("...Loading...")
 
     # 输出音符和和弦类型的字符变量
     # frame2
@@ -377,6 +398,9 @@ if __name__ == "__main__":
     window_.tk.call('tk', 'scaling', ScaleFactor / 75)  # 设置程序缩放
     # Tkinter控件
     window_widgets = []  # 初始化控件列表
+    text_load = tk.Label()
+    LOADING = True
+    load_str_var = tk.StringVar()
     note_text_var = tk.StringVar()  # 初始化全局控件
     note_text_var2 = tk.StringVar()  # 初始化全局控件
     both_title_v = tk.Label()  # 初始化全局控件
